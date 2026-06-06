@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="mk" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Counter">
+  <meta name="theme-color" content="#0d0c0b">
+  <title>Бројалка</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300..500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --font-display: 'Instrument Serif', Georgia, serif;
+      --font-body:    'DM Sans', system-ui, sans-serif;
+      --text-xs:   clamp(0.75rem,  0.7rem  + 0.25vw, 0.875rem);
+      --text-sm:   clamp(0.875rem, 0.8rem  + 0.35vw, 1rem);
+      --text-base: clamp(1rem,     0.95rem + 0.25vw, 1.125rem);
+      --text-lg:   clamp(1.125rem, 1rem    + 0.75vw, 1.5rem);
+      --text-xl:   clamp(1.5rem,   1.2rem  + 1.25vw, 2.25rem);
+      --text-2xl:  clamp(2rem,     1.2rem  + 2.5vw,  3.5rem);
+      --text-3xl:  clamp(2.5rem,   1rem    + 4vw,    5rem);
+      --text-hero: clamp(3rem,     0.5rem  + 7vw,    8rem);
+      --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem;
+      --space-4: 1rem;    --space-5: 1.25rem; --space-6: 1.5rem;
+      --space-8: 2rem;    --space-12: 3rem; --space-16: 4rem;
+      --radius-sm: 0.375rem; --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;  --radius-xl: 1rem; --radius-full: 9999px;
+      --transition: 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    [data-theme="dark"], :root {
+      --color-bg:             #0d0c0b;
+      --color-surface:        #141311;
+      --color-surface-2:      #1a1917;
+      --color-surface-offset: #201e1b;
+      --color-border:         oklch(0.8 0.01 60 / 0.12);
+      --color-divider:        oklch(0.8 0.01 60 / 0.08);
+      --color-text:           #e8e5df;
+      --color-text-muted:     #8a8780;
+      --color-text-faint:     #4a4845;
+      --color-primary:        #c9a97a;
+      --color-primary-hover:  #dbbf94;
+      --color-accent-glow:    oklch(0.72 0.1 65 / 0.15);
+      --shadow-sm: 0 1px 3px oklch(0 0 0 / 0.3);
+      --shadow-md: 0 4px 16px oklch(0 0 0 / 0.4);
+      --shadow-lg: 0 12px 40px oklch(0 0 0 / 0.6);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { -webkit-text-size-adjust: none; text-size-adjust: none; -webkit-font-smoothing: antialiased; scroll-behavior: smooth; }
+    body { min-height: 100dvh; font-family: var(--font-body); font-size: var(--text-base); color: var(--color-text); background: var(--color-bg); overflow-x: hidden; position: relative; }
+
+    .bg-ambient { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .bg-ambient::before {
+      content: ''; position: absolute; top: -30%; left: 50%; transform: translateX(-50%);
+      width: 80vw; height: 80vw;
+      background: radial-gradient(ellipse at center, oklch(0.55 0.12 50 / 0.18) 0%, transparent 70%);
+      border-radius: 50%; filter: blur(60px);
+      animation: pulse-glow 6s ease-in-out infinite alternate;
+    }
+    .bg-ambient::after {
+      content: ''; position: absolute; bottom: -20%; right: -10%;
+      width: 60vw; height: 60vw;
+      background: radial-gradient(ellipse at center, oklch(0.4 0.08 220 / 0.08) 0%, transparent 70%);
+      border-radius: 50%; filter: blur(80px);
+      animation: pulse-glow 8s ease-in-out infinite alternate-reverse;
+    }
+    @keyframes pulse-glow {
+      0%   { opacity: 0.6; transform: translateX(-50%) scale(1); }
+      100% { opacity: 1;   transform: translateX(-50%) scale(1.1); }
+    }
+
+    .app {
+      position: relative; z-index: 1;
+      min-height: 100dvh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: var(--space-6) var(--space-4);
+    }
+
+    /* ── Countdown ── */
+    #countdown-screen {
+      width: 100%; max-width: 500px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: var(--space-8);
+      text-align: center;
+    }
+
+    .countdown-header { animation: fadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+    .countdown-header .names {
+      font-family: var(--font-display); font-size: var(--text-xl);
+      font-weight: 400; color: var(--color-primary); font-style: italic;
+      margin-bottom: var(--space-1);
+    }
+    .countdown-header .tagline { font-size: var(--text-sm); color: var(--color-text-muted); }
+
+    /* Ring */
+    .ring-container {
+      position: relative; width: min(280px, 72vw); height: min(280px, 72vw);
+      animation: fadeUp 0.5s 0.1s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .ring-track { fill: none; stroke: var(--color-surface-offset); stroke-width: 6; }
+    .ring-progress {
+      fill: none; stroke: var(--color-primary); stroke-width: 6; stroke-linecap: round;
+      transition: stroke-dashoffset 1.2s cubic-bezier(0.16,1,0.3,1);
+      filter: drop-shadow(0 0 8px oklch(0.72 0.1 65 / 0.5));
+    }
+    .ring-inner {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-1);
+    }
+    .ring-days {
+      font-family: var(--font-display); font-size: var(--text-hero);
+      font-weight: 400; line-height: 1; color: var(--color-text); font-variant-numeric: tabular-nums;
+    }
+    .ring-label { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.12em; }
+
+    /* Time grid */
+    .time-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); width: 100%;
+      animation: fadeUp 0.5s 0.2s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .time-unit {
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg); padding: var(--space-4) var(--space-2);
+      display: flex; flex-direction: column; align-items: center; gap: var(--space-1);
+    }
+    .time-unit .value {
+      font-family: var(--font-display); font-size: var(--text-xl);
+      font-weight: 400; color: var(--color-text); font-variant-numeric: tabular-nums; line-height: 1;
+    }
+    .time-unit .unit { font-size: var(--text-xs); color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+    /* Return badge */
+    .return-badge {
+      display: inline-flex; align-items: center; gap: var(--space-2);
+      background: var(--color-surface); border: 1px solid var(--color-border);
+      border-radius: var(--radius-full); padding: var(--space-2) var(--space-4);
+      font-size: var(--text-sm); color: var(--color-text-muted);
+      animation: fadeUp 0.5s 0.3s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .return-badge strong { color: var(--color-primary); font-weight: 500; }
+
+    /* ── Arrived ── */
+    #arrived-screen {
+      display: none; flex-direction: column; align-items: center;
+      gap: var(--space-8); text-align: center;
+    }
+    #arrived-screen.active { display: flex; }
+    .arrived-emoji { font-size: clamp(3rem, 10vw, 5rem); animation: bounceIn 0.8s cubic-bezier(0.16,1,0.3,1) both; }
+    .arrived-title { font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 400; font-style: italic; color: var(--color-primary); line-height: 1.15; }
+    .arrived-sub { font-size: var(--text-base); color: var(--color-text-muted); max-width: 30ch; line-height: 1.6; }
+
+    /* ── Particles ── */
+    #particles-canvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0; transition: opacity 1s ease; }
+    #particles-canvas.active { opacity: 1; }
+
+    /* ── Install hint ── */
+    .install-hint {
+      position: fixed; bottom: var(--space-4); left: 50%; transform: translateX(-50%);
+      background: var(--color-surface-2); border: 1px solid var(--color-border);
+      border-radius: var(--radius-xl); padding: var(--space-3) var(--space-5);
+      font-size: var(--text-xs); color: var(--color-text-muted); text-align: center;
+      max-width: 90vw; box-shadow: var(--shadow-md); z-index: 10;
+      animation: fadeUp 1s 2s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    .install-hint strong { color: var(--color-text); }
+    .install-hint .close-hint { display: inline-block; margin-left: var(--space-3); cursor: pointer; opacity: 0.5; font-size: 1.1em; vertical-align: middle; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes bounceIn { 0% { transform: scale(0.3); opacity: 0; } 50% { transform: scale(1.1); } 70% { transform: scale(0.95); } 100% { transform: scale(1); opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+  </style>
+</head>
+<body>
+  <canvas id="particles-canvas"></canvas>
+  <div class="bg-ambient"></div>
+
+  <main class="app">
+
+    <!-- ── ОДБРОЈУВАЊЕ ── -->
+    <div id="countdown-screen">
+      <div class="countdown-header">
+        <div class="names">Михајло си иде за:</div>
+         <!-- <div class="tagline">денови до дома</div> -->
+      </div>
+
+      <div class="ring-container">
+        <svg class="ring-svg" viewBox="0 0 100 100">
+          <circle class="ring-track" cx="50" cy="50" r="44"/>
+          <circle class="ring-progress" id="ring-arc"
+                  cx="50" cy="50" r="44"
+                  stroke-dasharray="276.46"
+                  stroke-dashoffset="276.46"/>
+        </svg>
+        <div class="ring-inner">
+          <div class="ring-days" id="days-display">—</div>
+          <div class="ring-label">дена</div>
+        </div>
+      </div>
+
+      <div class="time-grid">
+        <div class="time-unit"><div class="value" id="hours-display">—</div><div class="unit">Часa</div></div>
+        <div class="time-unit"><div class="value" id="mins-display">—</div><div class="unit">Минути</div></div>
+        <div class="time-unit"><div class="value" id="secs-display">—</div><div class="unit">Секунди</div></div>
+      </div>
+
+      <div class="return-badge">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+        Се враќа на <strong>2 октомври 2026</strong>
+      </div>
+    </div>
+
+    <!-- ── ДОМА ── -->
+    <div id="arrived-screen">
+      <div class="arrived-emoji">🏠</div>
+      <h2 class="arrived-title">Михајло е дома.</h2>
+      <p class="arrived-sub">Дојди те згмечам! <3</p>
+    </div>
+
+  </main>
+
+  <div class="install-hint" id="install-hint" style="display:none">
+    <strong>iPhone?</strong> Допри <strong>Сподели → Додај на почетен екран</strong> за целосно искуство
+    <span class="close-hint" onclick="document.getElementById('install-hint').remove()">×</span>
+  </div>
+
+  <script>
+    // ── Датуми ────────────────────────────────────
+    const DEPART    = new Date('2026-06-07T00:00:00');
+    const RETURN    = new Date('2026-10-02T13:00:00');
+    const TOTAL_DAYS = Math.round((RETURN - DEPART) / 86400000); // 117 дена
+
+    // ── Одбројување ──────────────────────────────
+    let prevValues = {};
+
+    function tick() {
+      const now  = new Date();
+      const diff = RETURN - now;
+
+      if (diff <= 0) { showArrived(); return; }
+
+      const totalSecs = Math.floor(diff / 1000);
+      const days  = Math.floor(diff / 86400000);
+      const hours = Math.floor((totalSecs % 86400) / 3600);
+      const mins  = Math.floor((totalSecs % 3600) / 60);
+      const secs  = totalSecs % 60;
+
+      animateValue('days-display',  days);
+      animateValue('hours-display', pad(hours));
+      animateValue('mins-display',  pad(mins));
+      animateValue('secs-display',  pad(secs));
+
+      const fraction = Math.min(1, (diff / 86400000) / TOTAL_DAYS);
+      document.getElementById('ring-arc').style.strokeDashoffset = 276.46 * (1 - fraction);
+    }
+
+    function animateValue(id, val) {
+      const el  = document.getElementById(id);
+      const str = String(val);
+      if (prevValues[id] !== str) {
+        el.style.transition = 'none';
+        el.style.transform  = 'scale(1.08)';
+        setTimeout(() => {
+          el.style.transition = 'transform 0.3s cubic-bezier(0.16,1,0.3,1)';
+          el.style.transform  = 'scale(1)';
+        }, 40);
+        el.textContent  = str;
+        prevValues[id] = str;
+      }
+    }
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+
+    // ── Пристигна ─────────────────────────────────
+    function showArrived() {
+      document.getElementById('countdown-screen').style.display = 'none';
+      const arr = document.getElementById('arrived-screen');
+      arr.style.display = 'flex'; arr.classList.add('active');
+      launchParticles();
+    }
+
+    // ── Конфети ───────────────────────────────────
+    function launchParticles() {
+      const canvas = document.getElementById('particles-canvas');
+      canvas.classList.add('active');
+      const ctx = canvas.getContext('2d');
+      canvas.width = innerWidth; canvas.height = innerHeight;
+      const colors = ['#c9a97a','#e8d5b7','#d4b896','#f0e6d3','#b8905a'];
+      const particles = Array.from({length: 120}, () => ({
+        x: Math.random() * innerWidth, y: -20,
+        vx: (Math.random() - 0.5) * 3, vy: Math.random() * 3 + 1,
+        size: Math.random() * 8 + 4, color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360, spin: (Math.random() - 0.5) * 4,
+        opacity: 1, decay: Math.random() * 0.005 + 0.003
+      }));
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        particles.forEach(p => {
+          p.x += p.vx; p.y += p.vy; p.rotation += p.spin;
+          p.opacity = Math.max(0, p.opacity - p.decay);
+          ctx.save(); ctx.globalAlpha = p.opacity;
+          ctx.translate(p.x, p.y); ctx.rotate(p.rotation * Math.PI / 180);
+          ctx.fillStyle = p.color; ctx.fillRect(-p.size/2, -p.size/4, p.size, p.size/2);
+          ctx.restore();
+        });
+        if (particles.some(p => p.opacity > 0)) requestAnimationFrame(draw);
+        else canvas.classList.remove('active');
+      }
+      draw();
+    }
+
+    // ── iOS совет ─────────────────────────────────
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    if (isIOS && !navigator.standalone) {
+      setTimeout(() => { document.getElementById('install-hint').style.display = 'block'; }, 3000);
+    }
+
+    // ── Старт ─────────────────────────────────────
+    tick();
+    setInterval(tick, 1000);
+  </script>
+</body>
+</html>
